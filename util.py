@@ -36,9 +36,50 @@ def look_at(cam_location, point):
 
 
 def sample_spherical(n, radius=1.):
-    xyz = np.random.normal(size=(n,3))
+    xyz = np.random.normal(size=(n, 3))
+    xyz[:, 1] = np.abs(xyz[:, 1])
     xyz = normalize(xyz) * radius
     return xyz
+
+
+def sample_sherical_uniform_angles(n, radius=1.):
+    # Original
+    yaw = np.random.uniform(-math.pi, math.pi, n)
+    pitch = np.random.uniform(0, math.radians(85), n)
+    #
+    # # # For paper GAN inversion
+    # yaw = np.asarray([math.pi / 2, math.pi, -math.pi/2, -math.pi/2][:n])
+    # pitch = np.asarray([math.radians(35), math.radians(35), math.radians(35), math.radians(85)][:n])
+
+
+    # # For recognition renders
+    # train_yaw = -math.pi / 2
+    # yaw_std = (math.pi/16)
+    # yaw = np.random.uniform(train_yaw - yaw_std, train_yaw + yaw_std, n)
+    # pitch = np.random.uniform(math.radians(0), math.radians(20), n)
+    #
+    # test_yaw = np.asarray([(math.pi / 4) * 3])
+    # test_pitch = np.asarray([math.radians(30)])
+    #
+    # yaw = np.concatenate([yaw, test_yaw], axis=0)
+    # pitch = np.concatenate([pitch, test_pitch], axis=0)
+
+    # # For the new view synthesis
+    # yaw = np.asarray([(math.pi / 4) * 3, -math.pi/2])
+    # pitch = np.asarray([math.radians(30), math.radians(10)])
+
+    # print("Yaw: ", yaw)
+    # print("Pitch: ", pitch)
+
+    x = np.sin(yaw) * np.cos(pitch)
+    y = np.sin(pitch)
+    z = np.cos(yaw) * np.cos(pitch)
+
+    x = np.expand_dims(x, axis=1)
+    y = np.expand_dims(y, axis=1)
+    z = np.expand_dims(z, axis=1)
+
+    return np.concatenate((x, y, z), axis=1) * radius
 
 
 def set_camera_focal_length_in_world_units(camera_data, focal_length):
@@ -161,6 +202,7 @@ def get_calibration_matrix_K_from_blender(camd):
     scale = scene.render.resolution_percentage / 100
     sensor_width_in_mm = camd.sensor_width
     sensor_height_in_mm = camd.sensor_height
+
     pixel_aspect_ratio = scene.render.pixel_aspect_x / scene.render.pixel_aspect_y
     if (camd.sensor_fit == 'VERTICAL'):
         # the sensor height is fixed (sensor fit is horizontal),
@@ -181,6 +223,23 @@ def get_calibration_matrix_K_from_blender(camd):
     u_0 = resolution_x_in_px * scale / 2
     v_0 = resolution_y_in_px * scale / 2
     skew = 0 # only use rectangular pixels
+    # with open('debug.txt', 'w') as f:
+    #     f.write("Camera intrinsics: ")
+    #     f.write("Sensor width: ")
+    #     f.write(str(camd.sensor_width))
+    #     f.write("\nFocal length/fov ")
+    #     f.write(str(camd.lens))
+    #     f.write(" ")
+    #     f.write(str(camd.lens_unit))
+    #     # f.write(str(alpha_u))
+    #     f.write("\nFOV: ")
+    #     f.write(str(math.degrees(2 * math.atan(camd.sensor_width /(2 * camd.lens)))))
+    #     f.write("\nClip start/end ")
+    #     f.write(str(camd.clip_start))
+    #     f.write(" ")
+    #     f.write(str(camd.clip_end))
+    #
+    #     f.write('\n')
 
     K = Matrix(
         ((alpha_u, skew,    u_0),

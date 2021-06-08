@@ -1,4 +1,7 @@
 import os
+
+import numpy as np
+
 import util
 import bpy
 
@@ -52,7 +55,7 @@ class BlenderInterface():
         self.camera = bpy.context.scene.camera
         self.camera.data.sensor_height = self.camera.data.sensor_width # Square sensor
         util.set_camera_focal_length_in_world_units(self.camera.data, 525./512*resolution) # Set focal length to a common value (kinect)
-
+        self.camera.data.lens = 59  # To create a FOV of 30
         bpy.ops.object.select_all(action='DESELECT')
 
     def import_mesh(self, fpath, scale=1., object_world_matrix=None):
@@ -119,7 +122,7 @@ class BlenderInterface():
                 continue
 
             # Render the color image
-            self.blender_renderer.filepath = os.path.join(img_dir, '%06d.png'%i)
+            self.blender_renderer.filepath = os.path.join(img_dir, '%06d.png' % i)
             bpy.ops.render.render(write_still=True)
 
             if write_cam_params:
@@ -130,7 +133,7 @@ class BlenderInterface():
                     matrix_flat = []
                     for j in range(4):
                         for k in range(4):
-                            matrix_flat.append(cam2world[j][k])
+                            matrix_flat.append(blender_cam2world_matrices[i][j][k])
                     pose_file.write(' '.join(map(str, matrix_flat)) + '\n')
 
         # Remember which meshes were just imported
